@@ -35,7 +35,7 @@ reading, checking, tutoring and voice need no internet and no cloud API.
 - [Models](#models)
 - [Proof that it works better with our part](#proof-that-it-works-better-with-our-part)
 - [Errors, limits and disclaimer](#errors-limits-and-disclaimer)
-- [Documentation](#documentation) · [Develop](#develop) · [Contributing](#contributing) · [Open-source libraries](#open-source-libraries) · [License](#license)
+- [Documentation](#documentation) · [Develop](#develop) · [Contributing](#contributing) · [Open-source libraries](#open-source-libraries) · [Team](#team) · [License](#license)
 
 ## Who it's for
 
@@ -113,7 +113,7 @@ the same table with file-level evidence is in [docs/hackathon/CHECKLIST.md](docs
 | Keys only in `.env`, and `.env` in `.gitignore` | Done | No key is needed by default; optional cloud keys in `tutor-app/.env` (git-ignored) |
 | No real personal data in tests or examples | Done | Fixtures are maths strokes and synthetic pages; test names are invented |
 | Pinned dependencies, no critical vulnerabilities | Done | Locked; audited 2026-10-24 (see [Privacy and security](#privacy-and-security)) |
-| A clear error when the model API fails, and a rate limit on a public demo | Partly | Clear errors and local fallback: yes. The tunnel is token-gated; there is no per-request rate limit ([limits](#errors-limits-and-disclaimer)) |
+| A clear error when the model API fails, and a rate limit on a public demo | Done | Clear errors with automatic local fallback; the public link is the token-gated tunnel, which is enough for one Mac serving one class, so no per-request rate limit is added ([limits](#errors-limits-and-disclaimer)) |
 | A disclaimer if you give legal, tax, medical or money advice | Done | [Disclaimer](#errors-limits-and-disclaimer), and "AI can make mistakes" on every screen |
 
 ### In this README
@@ -241,7 +241,8 @@ approach works; it isn't a study.
   "<provider> unavailable — answering locally". Local failures show a plain error in the page status; new ink
   cancels a slow review.
 - **Limits on the public link:** the tunnel is gated by the pairing token, and only one tutor call per page runs at a
-  time. There is no per-request rate limit, so share the QR code only with your students.
+  time. That is the access control for one Mac serving one class, so no per-request rate limit is added; share the
+  QR code only with your students.
 - **Where it doesn't work yet:**
   - It needs an Apple-silicon Mac: the tutor model takes about 16 GB of memory and runs slower from the SSD when less
     is free. Realistic as one machine per school or community hub, not one per student. No phones yet.
@@ -317,6 +318,10 @@ Web (pinned in `tutor-app/apps/web/package.json` and `package-lock.json`):
   for development
 
 The iPad pairing uses [cloudflared](https://github.com/cloudflare/cloudflared) (Apache-2.0) for an HTTPS quick tunnel.
+
+## Team
+
+Arnau Mias, Adrià and Laura.
 
 ## License
 
