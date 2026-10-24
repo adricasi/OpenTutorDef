@@ -113,7 +113,7 @@ export function VoiceDock({ view, control, transcripts, tutorSaid }: {
 export function TalkButton({ view, onClick }: { view: VoiceView; onClick: () => void }) {
   const on = view.phase !== "off";
   return (
-    <button className={`talk-mini ${view.phase}${on ? " on" : ""}`} onClick={onClick} data-testid="voice" aria-pressed={on}
+    <button type="button" className={`talk-mini ${view.phase}${on ? " on" : ""}`} onClick={onClick} data-testid="voice" aria-pressed={on}
       aria-label={on ? `${LABEL[view.phase]} Tap to turn voice off.` : "Talk to the tutor"}
       title={view.unavailable ?? "Talk to the tutor (interrupt it any time)"}>
       <MicIcon /><span className="talk-label">{SHORT[view.phase]}</span>
