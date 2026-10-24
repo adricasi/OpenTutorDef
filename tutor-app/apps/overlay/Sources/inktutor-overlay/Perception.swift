@@ -51,6 +51,8 @@ final class Perception {
         ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
             self?.frontChanged()
         }
+        // where the button went down: a drag (a field into "Filas") starts on the highlighted control and ends elsewhere
+        if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown], handler: { [weak self] _ in self?.pressAt = self?.pointer() }) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp], handler: { [weak self] _ in self?.clicked() }) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown], handler: { [weak self] _ in self?.typed() }) { monitors.append(m) }
         trusted = AXIsProcessTrusted()
@@ -111,12 +113,16 @@ final class Perception {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.captureFrame(.focus) }
     }
 
+    private var pressAt: Point2?
+
     private func clicked() {
         guard enabled else { return }
-        onInput(InputEvent(kind: .click, tMs: nowMs(), at: pointer()))
+        onInput(InputEvent(kind: .click, tMs: nowMs(), at: pressAt ?? pointer()))  // a drag counts where it started
+        pressAt = nil
         snapshotNow()
         captureFrame(.click)
         snapshot(after: 0.3)
+        snapshot(after: 0.8)  // after a drop the app takes a moment to update its controls
     }
 
     private func typed() {
