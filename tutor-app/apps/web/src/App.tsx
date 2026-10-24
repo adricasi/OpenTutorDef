@@ -8,50 +8,23 @@ import { Popover, QuestionChips } from "./tutor/Overlays";
 import { TutorText } from "./tutor/TutorText";
 import { useCorrection } from "./tutor/Correction";
 import { visibleFeedback, type PageIndex } from "./tutor/geometry";
-import { PairButton } from "./pairing/PairingPage";
 import { Settings } from "./ui/Settings";
 import { ConnectionBanner, MemoryIndicator, Toasts } from "./ui/Notices";
-import { markOnboarded, Onboarding, shouldShowOnboarding } from "./ui/Onboarding";
+import { Onboarding } from "./ui/Onboarding";
+import { MODES, StartFlow } from "./ui/start/StartFlow";
 import { MoreMenu } from "./ui/MoreMenu";
 import { TalkButton, VoiceDock } from "./ui/VoiceDock";
 import { penAnchor, VoiceControl } from "./voice/control";
 
-const MODES: [string, string][] = [
-  ["math", "Maths"], ["consulting", "Consulting case"], ["system_design", "System design"],
-  ["language", "Language"], ["accounting", "Accounting"], ["sudoku", "Sudoku"], ["other", "Other"],
-];
-
 export default function App({ initial }: { initial?: Session | null }) {
   const params = new URLSearchParams(location.search);
   const [session, setSession] = useState<Session | null>(initial ?? null);
-  const [mode, setMode] = useState(params.get("mode") ?? "math");
-  const [problem, setProblem] = useState(params.get("problem") ?? "");
-  const [intro, setIntro] = useState(shouldShowOnboarding); // first run: a short how-it-works overlay
-  const closeIntro = useCallback(() => { markOnboarded(); setIntro(false); }, []);
-
-  const start = async () => setSession(await createSession(mode, problem));
+  const mode = params.get("mode") ?? "math";
+  const problem = params.get("problem") ?? "";
 
   if (!session) {
-    return (
-      <div className="start">
-        <form className="card" onSubmit={(e) => { e.preventDefault(); void start(); }}>
-          <h1>Ink Tutor</h1>
-          <label>What are you practising?
-            <select value={mode} onChange={(e) => setMode(e.target.value)}>
-              {MODES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </label>
-          <label>The problem (what the tutor is given)
-            <textarea value={problem} onChange={(e) => setProblem(e.target.value)} rows={3}
-              placeholder="e.g. Compute ∫₀¹ x³ dx. Show your steps." />
-          </label>
-          <button type="submit">Start writing</button>
-          <PairButton />
-          <button type="button" className="linkish" onClick={() => setIntro(true)}>How it works</button>
-        </form>
-        {intro && <Onboarding onClose={closeIntro} />}
-      </div>
-    );
+    return <StartFlow initialMode={mode} initialProblem={problem}
+      onStart={async (m, p, student) => setSession(await createSession(m, p, student))} />;
   }
   return <Workspace session={session} />;
 }

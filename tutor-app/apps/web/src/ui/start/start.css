@@ -1,0 +1,191 @@
+@import "./font.css";
+
+/* Opening screens (join, subjects, start), ported from OpenTutor's app.css (MIT, same team).
+   Every selector lives under .ot-start so nothing reaches the canvas. */
+
+.ot-start {
+  --ot-bg: #f8f9f8;
+  --ot-fg: #1b231d;
+  --ot-primary: #253f2e;
+  --ot-secondary: #e1ebe3;
+  --ot-muted: #5b655f;
+  --ot-border: #dfe5e2;
+  --ot-field-border: #7a867f;
+  --ot-card: #ffffff;
+  --ot-rail: #19211b;
+  --ot-rail-ink: #f1f4f2;
+  --ot-rail-muted: #a3aaa5;
+  --ot-rail-active: #29372d;
+  --ot-math-surface: #c7e881;
+  --ot-math-ink: #203020;
+  --ot-english-surface: #d1d1ff;
+  --ot-english-ink: #35304f;
+  --ot-science-surface: #ffc4a9;
+  --ot-science-ink: #533027;
+  --ot-other-surface: #c0eddc;
+  --ot-other-ink: #1c3124;
+  --ot-success: #29663f;
+  --ot-lime: #ceed7b;
+  --ot-radius: 8px;
+
+  position: fixed; inset: 0; display: flex; overflow: hidden;
+  font: 16px/1.5 "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ot-fg); background: var(--ot-bg);
+  -webkit-user-select: text; user-select: text;
+}
+.ot-start *, .ot-start *::before, .ot-start *::after { box-sizing: border-box; }
+.ot-start :focus-visible { outline: 3px solid #1b231d; outline-offset: 2px; box-shadow: 0 0 0 5px #ffffff; }
+.ot-start h1, .ot-start h2, .ot-start p { margin: 0; }
+
+/* Buttons (override the canvas-wide button defaults inside this screen only) */
+.ot-start .ot-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 0 20px; border-radius: var(--ot-radius); border: 1px solid transparent;
+  background: var(--ot-primary); color: #fff; font-weight: 500; font-size: 16px; cursor: pointer; white-space: nowrap;
+}
+.ot-start .ot-link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; border: 0; background: none;
+  color: var(--ot-primary); font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.ot-start .pair-link {
+  min-height: 48px; padding: 0 18px; border-radius: var(--ot-radius); border: 1px solid var(--ot-border);
+  background: var(--ot-card); color: var(--ot-primary); font-weight: 500;
+}
+
+/* Rail */
+.ot-start .ot-rail {
+  width: 215px; flex-shrink: 0; background: var(--ot-rail); color: var(--ot-rail-ink);
+  padding: 30px 22px 23px; display: flex; flex-direction: column;
+}
+.ot-start .ot-brand { font-weight: 700; font-size: 24px; white-space: nowrap; }
+.ot-start .ot-brand-period { color: var(--ot-lime); }
+.ot-start .ot-rail-label { color: var(--ot-rail-muted); font-size: 11px; letter-spacing: 1px; margin-top: 16px; }
+.ot-start .ot-rail-statement { margin: auto 0 48px; }
+.ot-start .ot-rail-statement > span { font-size: 120px; color: var(--ot-lime); font-weight: 500; line-height: 1; display: block; transform: rotate(-10deg); margin-left: 5px; }
+.ot-start .ot-rail-statement p { font-size: 22px; line-height: 1.38; font-weight: 500; margin-top: 15px; }
+.ot-start .ot-rail-footer { font-size: 13px; border-top: 1px solid var(--ot-rail-active); padding-top: 18px; }
+.ot-start .ot-rail-footer p { font-size: 12px; color: var(--ot-rail-muted); margin: 6px 0 0 14px; }
+.ot-start .ot-live-dot { display: inline-block; background: var(--ot-success); border-radius: 50%; width: 7px; height: 7px; margin-right: 7px; }
+.ot-start .ot-rail-footer .ot-live-dot { background: var(--ot-lime); }
+
+/* Body: top bar, scrolling content, footer */
+.ot-start .ot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.ot-start .ot-topbar {
+  min-height: 68px; padding: 0 40px; border-bottom: 1px solid var(--ot-border); background: var(--ot-card);
+  display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-shrink: 0;
+}
+.ot-start .ot-crumb { color: var(--ot-muted); font-size: 14px; }
+.ot-start .ot-crumb strong { font-weight: 500; color: var(--ot-fg); }
+.ot-start .ot-top-right { display: flex; align-items: center; gap: 14px; }
+.ot-start .ot-pill { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--ot-secondary); color: var(--ot-primary); font-size: 13px; font-weight: 500; }
+.ot-start .ot-user { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+.ot-start .ot-user > span { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--ot-secondary); color: var(--ot-primary); font-weight: 600; }
+.ot-start .ot-main { width: 100%; max-width: 1380px; margin: 0 auto; padding: 40px 40px 20px; flex: 1; }
+.ot-start .ot-footer {
+  border-top: 1px solid var(--ot-border); margin: 15px 40px 0; padding: 18px 0; display: flex; justify-content: space-between;
+  align-items: center; color: var(--ot-muted); font-size: 13px; gap: 15px; flex-wrap: wrap;
+}
+.ot-start .ot-footer-mark { color: var(--ot-primary); font-size: 18px; }
+
+/* Shared text */
+.ot-start .ot-page-kicker { display: flex; align-items: center; gap: 10px; font-size: 13px; letter-spacing: 1.1px; font-weight: 600; color: var(--ot-muted); text-transform: uppercase; }
+.ot-start .ot-star { color: var(--ot-primary); font-size: 24px; line-height: 1; }
+.ot-start .ot-muted-title { color: var(--ot-muted); }
+.ot-start h1 { font-size: 46px; font-weight: 500; line-height: 1.15; overflow-wrap: anywhere; }
+.ot-start .ot-section-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.ot-start .ot-section-title h2 { font-size: 17px; font-weight: 600; }
+.ot-start .ot-section-title > span { color: var(--ot-muted); font-size: 12px; letter-spacing: .7px; }
+
+/* Join */
+.ot-start .ot-join { display: grid; grid-template-columns: 1.1fr 1fr; gap: 35px; align-items: center; min-height: 480px; }
+.ot-start .ot-join h1 { margin-top: 26px; font-size: 52px; }
+.ot-start .ot-join-copy { color: var(--ot-muted); font-size: 16px; line-height: 1.7; margin-top: 20px; }
+.ot-start .ot-join-form { margin-top: 26px; max-width: 480px; }
+.ot-start .ot-join-form label { font-size: 15px; font-weight: 500; display: block; margin-bottom: 10px; }
+.ot-start .ot-field { display: flex; border: 1px solid var(--ot-field-border); border-radius: var(--ot-radius); padding: 6px; gap: 6px; background: var(--ot-card); }
+.ot-start .ot-field:focus-within { border-color: var(--ot-primary); box-shadow: 0 0 0 1px var(--ot-primary); }
+.ot-start .ot-field input { width: 100%; min-width: 0; min-height: 44px; background: transparent; border: 0; outline: none; font-size: 17px; padding-left: 9px; }
+.ot-start .ot-field input:focus-visible { box-shadow: none; outline: none; }
+.ot-start .ot-help { font-size: 13px; color: var(--ot-muted); display: block; margin-top: 10px; }
+.ot-start .ot-join-promises { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 20px; color: var(--ot-muted); font-size: 14px; }
+.ot-start .ot-join-visual { position: relative; padding-left: 10px; }
+.ot-start .ot-type-art { height: 380px; background: var(--ot-other-surface); border-radius: var(--ot-radius); position: relative; overflow: hidden; color: var(--ot-other-ink); }
+.ot-start .ot-art-question { position: absolute; left: 25px; top: 4px; font-size: 210px; font-weight: 600; line-height: 1; transform: rotate(-12deg); }
+.ot-start .ot-art-plus { position: absolute; top: 27px; right: 34px; font-size: 90px; line-height: 1; color: var(--ot-science-ink); }
+.ot-start .ot-art-word { position: absolute; left: 28px; bottom: 50px; font-size: 92px; font-weight: 600; line-height: 1; }
+.ot-start .ot-art-word > span { color: var(--ot-science-ink); }
+.ot-start .ot-art-note { position: absolute; left: 31px; bottom: 18px; font-size: 11px; line-height: 1.4; letter-spacing: 1.1px; }
+.ot-start .ot-art-star { position: absolute; right: 26px; bottom: 26px; font-size: 76px; line-height: 1; color: var(--ot-english-ink); }
+
+/* Subjects */
+.ot-start .ot-title-row { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin: 18px 0 30px; }
+.ot-start .ot-title-row .ot-link { margin-top: 10px; }
+.ot-start .ot-open-label { font-size: 13px; color: var(--ot-primary); line-height: 1.7; transform: rotate(-8deg); }
+.ot-start .maths { --subject-surface: var(--ot-math-surface); --subject-ink: var(--ot-math-ink); }
+.ot-start .english { --subject-surface: var(--ot-english-surface); --subject-ink: var(--ot-english-ink); }
+.ot-start .science { --subject-surface: var(--ot-science-surface); --subject-ink: var(--ot-science-ink); }
+.ot-start .other { --subject-surface: var(--ot-other-surface); --subject-ink: var(--ot-other-ink); }
+.ot-start .ot-subjects { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; list-style: none; padding: 0; margin: 0; }
+.ot-start .ot-subject {
+  display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 180px; text-align: left; white-space: normal;
+  background: var(--subject-surface); color: var(--subject-ink); padding: 22px; border: 2px solid transparent;
+  border-radius: var(--ot-radius); font-size: 15px; cursor: pointer; transition: transform .2s;
+}
+.ot-start .ot-subject:hover { transform: translateY(-4px); }
+.ot-start .ot-subject.picked { border-color: var(--ot-primary); box-shadow: 0 0 0 3px var(--ot-card), 0 0 0 5px var(--ot-primary); }
+.ot-start .ot-subject-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ot-start .ot-subject-top > span:first-child { font-size: 27px; font-weight: 500; line-height: 1.2; }
+.ot-start .ot-subject-top > span:last-child { font-size: 13px; }
+.ot-start .ot-subject-blurb { line-height: 1.55; margin-top: 10px; }
+.ot-start .ot-subject-foot { display: flex; justify-content: space-between; border-top: 1px solid currentColor; margin-top: auto; padding-top: 12px; font-size: 13px; }
+
+/* Start step */
+.ot-start .ot-start-step { max-width: 720px; }
+.ot-start .ot-start-step h1 { margin: 18px 0 26px; }
+.ot-start .ot-start-form { background: var(--subject-surface); color: var(--subject-ink); border-radius: var(--ot-radius); padding: 24px; }
+.ot-start .ot-start-form label { display: block; font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+.ot-start .ot-start-form textarea {
+  display: block; width: 100%; min-height: 120px; resize: vertical; padding: 12px; font: inherit; font-size: 17px; color: var(--ot-fg);
+  background: var(--ot-card); border: 1px solid var(--ot-field-border); border-radius: var(--ot-radius);
+}
+.ot-start .ot-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+.ot-start .ot-actions .ot-link { color: var(--subject-ink); }
+
+/* iPad landscape and smaller laptops */
+@media (max-width: 1240px) {
+  .ot-start .ot-rail { width: 185px; padding: 26px 16px; }
+  .ot-start .ot-main { padding: 30px 28px 18px; }
+  .ot-start .ot-topbar { padding: 0 28px; }
+  .ot-start .ot-footer { margin-left: 28px; margin-right: 28px; }
+  .ot-start .ot-join h1 { font-size: 44px; }
+  .ot-start h1 { font-size: 40px; }
+  .ot-start .ot-type-art { height: 320px; }
+  .ot-start .ot-art-question { font-size: 170px; }
+  .ot-start .ot-art-word { font-size: 76px; }
+}
+/* Narrow / portrait: no rail, one column join */
+@media (max-width: 900px) {
+  .ot-start .ot-join { grid-template-columns: 1fr; min-height: 0; gap: 28px; }
+  .ot-start .ot-join-visual { padding-left: 0; }
+  .ot-start .ot-type-art { height: 240px; }
+  .ot-start .ot-art-question { font-size: 150px; }
+  .ot-start .ot-art-word { font-size: 64px; bottom: 40px; }
+  .ot-start .ot-subjects { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ot-start .ot-open-label { display: none; }
+}
+@media (max-width: 759px) {
+  .ot-start .ot-rail { display: none; }
+}
+@media (max-width: 560px) {
+  .ot-start .ot-topbar { min-height: 52px; padding: 0 16px; }
+  .ot-start .ot-main { padding: 24px 16px 16px; }
+  .ot-start .ot-footer { margin: 12px 16px 0; }
+  .ot-start h1, .ot-start .ot-join h1 { font-size: 36px; }
+  .ot-start .ot-subjects { grid-template-columns: 1fr; gap: 12px; }
+  .ot-start .ot-subject { min-height: 0; }
+  .ot-start .ot-subject-foot { display: none; }
+  .ot-start .ot-type-art { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ot-start .ot-subject { transition: none; }
+}

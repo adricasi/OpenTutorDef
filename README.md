@@ -43,6 +43,9 @@ works. `make test`, `make lint`, `make e2e`, `make demo` and `make judge` are de
 `tutor-app/.env` (see `.env.example`). Keys live only in `.env`, which is git-ignored. If the cloud call fails, the
 app answers with the local model and the page shows "<provider> unavailable — answering locally".
 
+**Starting a session:** the student first types a nickname, picks a subject, and can add the problem they are working
+on, then writes. Pairing and the connection are unchanged: a QR code, then the HTTPS tunnel or the local network.
+
 ## What expertise is inside, and where it comes from
 
 The model doesn't decide on its own whether a step is right. Most of the teaching is in code and written rules:
@@ -136,6 +139,8 @@ Server (Python, pinned in `tutor-app/uv.lock`):
 Web (pinned in `tutor-app/apps/web/package.json` and `package-lock.json`):
 - [React](https://react.dev) (MIT), [KaTeX](https://katex.org) (MIT)
 - the [Caveat](https://fontsource.org/fonts/caveat) font (OFL-1.1)
+- the [DM Sans](https://github.com/googlefonts/dm-fonts) font (OFL-1.1), bundled for the start screens; see
+  `tutor-app/apps/web/THIRD_PARTY_LICENSES.md`
 - [Vite](https://vite.dev), [Vitest](https://vitest.dev), [Playwright](https://playwright.dev), TypeScript and ESLint,
   for development
 

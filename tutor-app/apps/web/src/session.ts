@@ -210,11 +210,13 @@ export function wsUrl(sessionId: string): string {
   return `${proto}//${location.host}/ws/session/${sessionId}`;
 }
 
-export async function createSession(mode: string, problem: string): Promise<Session> {
+export async function createSession(mode: string, problem: string, student?: string): Promise<Session> {
+  const body: { mode: string; problem: string; student?: string } = { mode, problem };
+  if (typeof student === "string" && student.trim()) body.student = student.trim();
   const r = await fetch("/api/sessions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode, problem }),
+    body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return (await r.json()) as Session;

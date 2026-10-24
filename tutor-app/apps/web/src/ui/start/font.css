@@ -1,0 +1,7 @@
+/* DM Sans variable font, bundled locally (SIL OFL 1.1, see THIRD_PARTY_LICENSES.md). No network fetch. */
+@font-face {
+  font-family: "DM Sans";
+  src: url("./dm-sans.woff2") format("woff2");
+  font-weight: 100 1000;
+  font-display: swap;
+}
