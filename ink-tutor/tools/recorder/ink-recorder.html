@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Ink Recorder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEF0F3;--panel:#FFFFFF;--paper:#FFFFFF;--grid:#DADDE3;
+  --ink:#1F2328;--muted:#5B6472;--line:#D5D9E0;
+  --accent:#1D5C63;--accent-ink:#FFFFFF;--rec:#D1433F;
+  --btn:#FFFFFF;--btn-ink:#1F2328;--shadow:0 2px 10px rgba(20,24,30,.12);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#15171B;--panel:#1E2127;--paper:#F6F6F2;--grid:#D3D6DC;
+    --ink:#E6E8EC;--muted:#9AA3B2;--line:#2D323B;
+    --accent:#5FB3BA;--accent-ink:#0E1A1C;--rec:#E05A56;
+    --btn:#262A32;--btn-ink:#E6E8EC;--shadow:0 2px 12px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#15171B;--panel:#1E2127;--paper:#F6F6F2;--grid:#D3D6DC;
+  --ink:#E6E8EC;--muted:#9AA3B2;--line:#2D323B;
+  --accent:#5FB3BA;--accent-ink:#0E1A1C;--rec:#E05A56;
+  --btn:#262A32;--btn-ink:#E6E8EC;--shadow:0 2px 12px rgba(0,0,0,.45);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:14px;line-height:1.4;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--panel);z-index:10}
+button{font:inherit;color:var(--btn-ink);background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;line-height:1.2}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+button.danger{color:var(--rec);border-color:var(--rec)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:64px;resize:vertical;-webkit-user-select:text;user-select:text}
+label{display:block;margin:10px 0 4px;color:var(--muted);font-size:13px}
+header.bar{position:fixed;top:0;left:0;right:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line);
+  padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bar .left{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 180px}
+.bar .center{display:flex;gap:6px;flex-wrap:wrap}
+.bar .right{margin-left:auto;display:flex;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);flex:none}
+.dot.on{background:var(--rec);box-shadow:0 0 0 4px rgba(209,67,63,.18);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.dot.on{animation:none}}
+#sessionName{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
+#clock{color:var(--muted);font-variant-numeric:tabular-nums}
+main{position:fixed;inset:0;top:var(--barh,56px);bottom:env(safe-area-inset-bottom,0px)}
+canvas#paper{display:block;width:100%;height:100%;background:var(--paper);touch-action:none;cursor:crosshair;
+  background-image:radial-gradient(var(--grid) 1px,transparent 1px);background-size:24px 24px}
+.tools{position:absolute;left:12px;bottom:14px;display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:6px;box-shadow:var(--shadow);flex-wrap:wrap;max-width:calc(100% - 24px)}
+.tools .sw{width:28px;height:28px;border-radius:50%;border:2px solid transparent;padding:0}
+.tools .sw.on{border-color:var(--accent)}
+.tools .sep{width:1px;height:22px;background:var(--line);margin:0 2px}
+.tools button.tool{padding:5px 9px;font-size:13px}
+.tools button.tool.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.hint{position:absolute;right:12px;bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px;color:var(--muted);font-size:13px;box-shadow:var(--shadow);max-width:46%}
+.hint.rec{color:var(--ink)}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:18px;width:min(560px,calc(100vw - 32px));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(10,12,16,.45)}
+dialog h2{margin:0 0 6px;font-size:17px;font-weight:600}
+dialog p.sub{margin:0 0 6px;color:var(--muted);font-size:13px}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.row .spacer{flex:1}
+.snap{width:100%;max-height:150px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:8px}
+.check{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--ink)}
+.check input{width:auto}
+aside#drawer{position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);background:var(--panel);border-left:1px solid var(--line);z-index:12;
+  transform:translateX(100%);transition:transform .2s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-reduced-motion:reduce){aside#drawer{transition:none}}
+aside#drawer.open{transform:none}
+#drawer .head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+#drawer .head h2{margin:0;font-size:16px;flex:1}
+#drawer .list{flex:1;overflow:auto;padding:10px 14px}
+.sess{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.sess .t{font-weight:600}
+.sess .m{color:var(--muted);font-size:12px;margin:2px 0 8px}
+.sess .acts{display:flex;gap:6px;flex-wrap:wrap}
+.sess .acts button{padding:5px 9px;font-size:13px}
+.empty{color:var(--muted);padding:20px 4px;text-align:center}
+#drawer .foot{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:6px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(70px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:999px;font-size:13px;z-index:20;opacity:0;transition:opacity .15s}
+.toast.show{opacity:1}
+#exportText{height:200px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+dialog.wide{width:min(900px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:0;flex-direction:column}
+dialog.wide[open]{display:flex}
+.anno-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.anno-head h2{margin:0;flex:1;font-size:16px}
+.anno-list{overflow:auto;padding:12px 16px;flex:1;-webkit-user-select:text;user-select:text}
+.anno-item{display:grid;grid-template-columns:minmax(160px,220px) 1fr;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+@media (max-width:640px){.anno-item{grid-template-columns:1fr}}
+.anno-item img{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
+.anno-item .k{font-size:12px;color:var(--muted);margin-bottom:6px}
+.anno-item label{margin-top:6px}
+.anno-item .status{font-size:12px;color:var(--muted);margin-top:6px;min-height:16px}
+.anno-foot{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+.anno-foot .k{flex:1;color:var(--muted);font-size:12px}
+.replaybar{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px 6px 14px;display:none;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.replaybar.show{display:flex}
+#btnMic.on{background:var(--rec);color:#fff;border-color:transparent}
+</style>
+</head>
+<body>
+<header class="bar" id="bar">
+  <div class="left">
+    <span class="dot" id="recDot"></span>
+    <span id="sessionName">No session</span>
+    <span class="tag" id="modeTag" hidden></span>
+    <span id="clock" hidden>00:00</span>
+  </div>
+  <div class="center">
+    <button id="btnNew" class="primary">New session</button>
+    <button id="btnCheckpoint" disabled>Checkpoint</button>
+    <button id="btnPhoto" disabled>Add photo</button>
+    <button id="btnMic" disabled title="Record what you say, timed with the ink (the mic needs HTTPS: use the get_recordings link)">Mic</button>
+    <button id="btnNewPage" disabled>New page</button>
+    <button id="btnEnd" disabled class="danger">End session</button>
+  </div>
+  <div class="right">
+    <button id="btnSessions">Sessions (0)</button>
+  </div>
+</header>
+
+<main id="main">
+  <canvas id="paper"></canvas>
+  <div class="replaybar" id="replaybar">
+    <span id="replayLabel">Replaying</span>
+    <button class="tool" id="btnReplaySpeed">×4</button>
+    <button class="tool" id="btnReplayStop">Stop</button>
+  </div>
+  <div class="tools" id="tools">
+    <button class="sw on" data-color="#1F2328" style="background:#1F2328" title="Black ink"></button>
+    <button class="sw" data-color="#1B4F9C" style="background:#1B4F9C" title="Blue ink"></button>
+    <button class="sw" data-color="#B4232A" style="background:#B4232A" title="Red ink"></button>
+    <button class="sw" data-color="#1E7A4C" style="background:#1E7A4C" title="Green ink"></button>
+    <span class="sep"></span>
+    <button class="tool" data-width="2">Thin</button>
+    <button class="tool on" data-width="3">Medium</button>
+    <button class="tool" data-width="5">Thick</button>
+    <span class="sep"></span>
+    <button class="tool" id="btnEraser">Eraser</button>
+    <button class="tool" id="btnUndo">Undo</button>
+    <button class="tool" id="btnRedo">Redo</button>
+    <span class="sep"></span>
+    <button class="tool" id="btnFinger" title="Let fingers draw (off = fingers ignored, Pencil and mouse draw)">Finger draws</button>
+  </div>
+  <div class="hint" id="hint">Not recording. Start a session, then draw.</div>
+</main>
+
+<dialog id="dlgNew">
+  <h2>New session</h2>
+  <p class="sub">One session is one flow: a problem, a diagram, a sentence. Keep it under a few minutes.</p>
+  <label for="fTitle">Title</label>
+  <input id="fTitle" placeholder="e.g. Integration by parts with a sign error">
+  <label for="fMode">Mode</label>
+  <select id="fMode">
+    <option value="math">Maths</option>
+    <option value="diagram">Diagram (system design, consulting)</option>
+    <option value="language">Language</option>
+    <option value="accounting">Accounting</option>
+    <option value="other">Other</option>
+  </select>
+  <label for="fProblem">Problem statement or task (what the tutor is given)</label>
+  <textarea id="fProblem" placeholder="e.g. Compute ∫ x·e^x dx. Show your steps."></textarea>
+  <label for="fIntent">What you plan to do (optional: where you will make mistakes, what you want the tutor to catch)</label>
+  <textarea id="fIntent" placeholder="e.g. I’ll drop the minus sign in step 2 on purpose."></textarea>
+  <div class="row"><button id="newCancel">Cancel</button><button id="newStart" class="primary">Start recording</button></div>
+</dialog>
+
+<dialog id="dlgCheckpoint">
+  <h2>Checkpoint</h2>
+  <p class="sub">Mark a moment the tutor should react to. Snapshot is taken now.</p>
+  <img id="cpSnap" class="snap" alt="Snapshot of the canvas at this checkpoint">
+  <label for="cpKind">Kind</label>
+  <select id="cpKind">
+    <option value="step">Finished a step or line</option>
+    <option value="mistake">Deliberate mistake here</option>
+    <option value="final">Finished the whole thing</option>
+    <option value="question">I’d ask the tutor something here</option>
+    <option value="ambiguous">My handwriting is ambiguous here</option>
+  </select>
+  <label for="cpTruth">Ground truth: what you actually wrote (LaTeX, text, or the diagram as nodes/edges)</label>
+  <textarea id="cpTruth" placeholder="e.g. \int x e^x dx = x e^x - \int e^x dx"></textarea>
+  <label for="cpExpect">Expected tutor behaviour: what it should mark, say, or ask</label>
+  <textarea id="cpExpect" placeholder="e.g. ✓ on this line, no comment. Or: underline the minus sign, hint “check the sign of the integral”."></textarea>
+  <label for="cpNote">Note (anything else)</label>
+  <textarea id="cpNote" placeholder="e.g. I write 2 and z almost the same."></textarea>
+  <div class="row"><button id="cpCancel">Cancel</button><button id="cpSave" class="primary">Save checkpoint</button></div>
+</dialog>
+
+<dialog id="dlgPhoto">
+  <h2>Add photo</h2>
+  <p class="sub">A photo of paper, for the photo path. Same fields as a checkpoint.</p>
+  <input type="file" id="phFile" accept="image/*">
+  <img id="phPreview" class="snap" alt="Selected photo" hidden>
+  <label for="phTruth">Ground truth: what is written on it</label>
+  <textarea id="phTruth"></textarea>
+  <label for="phExpect">Expected tutor behaviour</label>
+  <textarea id="phExpect"></textarea>
+  <label for="phNote">Note</label>
+  <textarea id="phNote"></textarea>
+  <div class="row"><button id="phCancel">Cancel</button><button id="phSave" class="primary" disabled>Save photo</button></div>
+</dialog>
+
+<dialog id="dlgExport">
+  <h2>Export</h2>
+  <p class="sub" id="exportSub">Saving isn’t available in this view. Copy the JSON instead.</p>
+  <textarea id="exportText" readonly></textarea>
+  <div class="row"><button id="exportCopy">Copy JSON</button><button id="exportClose" class="primary">Close</button></div>
+</dialog>
+
+<dialog id="dlgAnno" class="wide">
+  <div class="anno-head">
+    <h2 id="annoTitle">Annotate</h2>
+    <label class="check" style="margin:0"><input type="checkbox" id="annoStrong"> Stronger model (slower)</label>
+    <button id="annoDraftAll" hidden>Draft empty ones with Claude</button>
+  </div>
+  <div class="anno-list" id="annoList"></div>
+  <div class="anno-foot"><span id="annoNote" class="k"></span><button id="annoClose" class="primary">Save and close</button></div>
+</dialog>
+
+<aside id="drawer" aria-label="Sessions">
+  <div class="head"><h2>Sessions</h2><button id="drawerClose">Close</button></div>
+  <div class="list" id="sessList"></div>
+  <div class="foot">
+    <button id="btnExportAll">Save all as one file</button>
+    <button id="btnSendAll" hidden>Send all to Mac</button>
+    <button id="btnCollector" hidden>Collector URL…</button>
+    <button id="btnClearAll" class="danger">Delete all</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+const SCHEMA = "inktutor.recording/1";
+const LS_KEY = "inkrec.sessions.v1";
+const $ = (id) => document.getElementById(id);
+const IN_VIEWER = !!(window.claude && window.claude.use); // inside claude.ai the page cannot reach a LAN server
+
+// ---------- state ----------
+const S = {
+  session: null,          // active session (recording)
+  pages: [],              // pages of active session
+  page: null,             // current page object
+  events: [],             // event log of active session
+  checkpoints: [],
+  photos: [],
+  audio: [],              // mic clips of this session: {id, t, tEnd, page, mime, bytes, dataUrl}
+  mic: null,              // the clip being recorded
+  t0: 0,
+  live: null,             // stroke being drawn
+  activePointer: null,
+  activeSince: 0,         // event timeStamp of the active pointer's pointerdown
+  undo: [],               // undo stack of actions {type:'add'|'erase', strokes:[...]}
+  redo: [],
+  color: "#1F2328",
+  width: 3,
+  eraser: false,
+  fingerDraws: false,
+  pointerTypes: new Set(),
+  sessions: [],           // finished sessions
+  replay: null,           // {timer, speed}
+  downloads: undefined,   // capability namespace or null
+};
+let idCounter = 0;
+const uid = (p) => p + "_" + Date.now().toString(36) + "_" + (idCounter++).toString(36);
+const now = () => Math.round((performance.now() - S.t0) * 10) / 10;
+
+// ---------- canvas ----------
+const paper = $("paper");
+const ctx = paper.getContext("2d", { desynchronized: true });
+let W = 0, H = 0, DPR = 1;
+
+function resize(){
+  const r = paper.getBoundingClientRect();
+  DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  W = Math.round(r.width); H = Math.round(r.height);
+  paper.width = Math.round(W * DPR); paper.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (S.session) logEvent({ type: "viewport", width: W, height: H, dpr: DPR });
+  redraw();
+}
+function setBarHeight(){
+  document.documentElement.style.setProperty("--barh", $("bar").offsetHeight + "px");
+}
+window.addEventListener("resize", () => { setBarHeight(); resize(); });
+
+function segWidth(stroke, p){
+  if (stroke.pointerType === "pen" && p > 0) return stroke.width * (0.45 + 1.1 * p);
+  return stroke.width;
+}
+function drawSegment(stroke, a, b){
+  ctx.strokeStyle = stroke.color;
+  ctx.lineWidth = segWidth(stroke, (a[3] + b[3]) / 2);
+  ctx.beginPath(); ctx.moveTo(a[1], a[2]); ctx.lineTo(b[1], b[2]); ctx.stroke();
+}
+function drawDot(stroke, a){
+  ctx.fillStyle = stroke.color;
+  ctx.beginPath(); ctx.arc(a[1], a[2], segWidth(stroke, a[3]) / 2, 0, Math.PI * 2); ctx.fill();
+}
+function drawStroke(stroke){
+  const pts = stroke.pts;
+  if (!pts.length) return;
+  if (pts.length === 1) { drawDot(stroke, pts[0]); return; }
+  for (let i = 1; i < pts.length; i++) drawSegment(stroke, pts[i-1], pts[i]);
+}
+function redraw(){
+  ctx.clearRect(0, 0, W, H);
+  const strokes = S.page ? S.page.strokes : scratch.strokes;
+  for (const s of strokes) drawStroke(s);
+  if (S.live) drawStroke(S.live);
+}
+const scratch = { strokes: [] }; // drawing without a session
+
+function currentStrokes(){ return S.page ? S.page.strokes : scratch.strokes; }
+
+// ---------- pointer input ----------
+function accepts(e){
+  if (e.pointerType === "touch" && !S.fingerDraws) return false;
+  return true;
+}
+function pt(e){
+  const r = paper.getBoundingClientRect();
+  return [
+    S.session ? now() : Math.round(performance.now() * 10) / 10,
+    Math.round((e.clientX - r.left) * 10) / 10,
+    Math.round((e.clientY - r.top) * 10) / 10,
+    Math.round((e.pressure || 0) * 1000) / 1000,
+    Math.round(e.tiltX || 0),
+    Math.round(e.tiltY || 0),
+  ];
+}
+paper.addEventListener("pointerdown", (e) => {
+  if (S.replay) return;
+  if (!accepts(e)) return;
+  if (S.activePointer !== null) {
+    // iPad Safari can deliver the next Pencil pointerdown before the previous pointerup (its
+    // double-tap/Scribble recognizers hold events back). A pen or mouse can't be down twice, so
+    // finish the old stroke instead of dropping the new one. A second finger is still ignored.
+    if (e.pointerType === "touch") return;
+    endStroke({ pointerId: S.activePointer });
+  }
+  S.pointerTypes.add(e.pointerType);
+  e.preventDefault();
+  S.activePointer = e.pointerId;
+  S.activeSince = e.timeStamp;
+  try { paper.setPointerCapture(e.pointerId); } catch (_) {}
+  if (S.eraser) { eraseAt(e); return; }
+  const p = pt(e);
+  S.live = { id: uid("s"), page: S.page ? S.page.id : null, color: S.color, width: S.width, pointerType: e.pointerType, pts: [p] };
+  if (S.session) logEvent({ type: "stroke.start", id: S.live.id, page: S.live.page, pointerType: e.pointerType, color: S.color, width: S.width, pt: p });
+  drawDot(S.live, p);
+});
+paper.addEventListener("pointermove", (e) => {
+  if (e.pointerId !== S.activePointer) return;
+  e.preventDefault();
+  if (S.eraser) { eraseAt(e); return; }
+  if (!S.live) return;
+  const evs = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+  const batch = [];
+  for (const ce of evs) {
+    const p = pt(ce);
+    const last = S.live.pts[S.live.pts.length - 1];
+    if (Math.abs(p[1] - last[1]) < 0.3 && Math.abs(p[2] - last[2]) < 0.3) continue;
+    S.live.pts.push(p); batch.push(p);
+    drawSegment(S.live, last, p);
+  }
+  if (batch.length && S.session) logEvent({ type: "stroke.points", id: S.live.id, pts: batch });
+});
+function endStroke(e){
+  if (e.pointerId !== S.activePointer) return;
+  if (e.timeStamp !== undefined && e.timeStamp < S.activeSince) return; // a late pointerup from the previous stroke
+  S.activePointer = null;
+  try { paper.releasePointerCapture(e.pointerId); } catch (_) {}
+  if (S.eraser) { if (S.session) logEvent({ type: "erase.end" }); return; }
+  if (!S.live) return;
+  const s = S.live; S.live = null;
+  currentStrokes().push(s);
+  S.undo.push({ type: "add", strokes: [s] }); S.redo = [];
+  if (S.session) logEvent({ type: "stroke.end", id: s.id, n: s.pts.length });
+  updateButtons();
+}
+paper.addEventListener("pointerup", endStroke);
+paper.addEventListener("pointercancel", endStroke);
+paper.addEventListener("lostpointercapture", (e) => { if (S.live && e.pointerId === S.activePointer) endStroke(e); });
+// Keep iOS gesture recognizers (double-tap zoom, Scribble, loupe) off the canvas; they delay or eat
+// quick successive Pencil strokes even with touch-action:none. Pointer events still fire.
+for (const t of ["touchstart", "touchmove", "touchend"]) paper.addEventListener(t, (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+for (const t of ["gesturestart", "gesturechange", "dblclick"]) paper.addEventListener(t, (e) => e.preventDefault());
+
+function eraseAt(e){
+  const r = paper.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top, th = 12;
+  const strokes = currentStrokes();
+  const hit = [];
+  for (const s of strokes) {
+    for (const p of s.pts) { if (Math.abs(p[1] - x) < th && Math.abs(p[2] - y) < th) { hit.push(s); break; } }
+  }
+  if (!hit.length) return;
+  for (const s of hit) strokes.splice(strokes.indexOf(s), 1);
+  S.undo.push({ type: "erase", strokes: hit }); S.redo = [];
+  if (S.session) logEvent({ type: "erase", ids: hit.map(s => s.id), x: Math.round(x), y: Math.round(y) });
+  redraw(); updateButtons();
+}
+function undo(){
+  const a = S.undo.pop(); if (!a) return;
+  const strokes = currentStrokes();
+  if (a.type === "add") for (const s of a.strokes) { const i = strokes.indexOf(s); if (i >= 0) strokes.splice(i, 1); }
+  else for (const s of a.strokes) strokes.push(s);
+  S.redo.push(a);
+  if (S.session) logEvent({ type: "undo", action: a.type, ids: a.strokes.map(s => s.id) });
+  redraw(); updateButtons();
+}
+function redo(){
+  const a = S.redo.pop(); if (!a) return;
+  const strokes = currentStrokes();
+  if (a.type === "add") for (const s of a.strokes) strokes.push(s);
+  else for (const s of a.strokes) { const i = strokes.indexOf(s); if (i >= 0) strokes.splice(i, 1); }
+  S.undo.push(a);
+  if (S.session) logEvent({ type: "redo", action: a.type, ids: a.strokes.map(s => s.id) });
+  redraw(); updateButtons();
+}
+
+// ---------- tools UI ----------
+document.querySelectorAll(".sw").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".sw").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  S.color = b.dataset.color; setEraser(false);
+  if (S.session) logEvent({ type: "tool", color: S.color, width: S.width });
+}));
+document.querySelectorAll("[data-width]").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("[data-width]").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  S.width = Number(b.dataset.width); setEraser(false);
+  if (S.session) logEvent({ type: "tool", color: S.color, width: S.width });
+}));
+function setEraser(on){ S.eraser = on; $("btnEraser").classList.toggle("on", on); paper.style.cursor = on ? "cell" : "crosshair"; if (S.session && on) logEvent({ type: "tool", eraser: true }); }
+$("btnEraser").addEventListener("click", () => setEraser(!S.eraser));
+$("btnUndo").addEventListener("click", undo);
+$("btnRedo").addEventListener("click", redo);
+$("btnFinger").addEventListener("click", () => { S.fingerDraws = !S.fingerDraws; $("btnFinger").classList.toggle("on", S.fingerDraws); });
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+});
+
+// ---------- session ----------
+function logEvent(ev){ ev.t = now(); S.events.push(ev); }
+function deviceInfo(){
+  return { userAgent: navigator.userAgent, dpr: DPR, canvasWidth: W, canvasHeight: H, maxTouchPoints: navigator.maxTouchPoints || 0, pointerTypesSeen: [] };
+}
+function newPage(){
+  const page = { id: uid("p"), index: S.pages.length, width: W, height: H, dpr: DPR, strokes: [] };
+  S.pages.push(page); S.page = page; S.undo = []; S.redo = [];
+  logEvent({ type: "page.new", page: page.id, index: page.index, width: W, height: H });
+  redraw(); updateButtons();
+  return page;
+}
+function startSession(){
+  const title = $("fTitle").value.trim() || "Untitled";
+  S.session = {
+    id: uid("sess"), title, mode: $("fMode").value, problem: $("fProblem").value.trim(), intent: $("fIntent").value.trim(),
+    startedAt: new Date().toISOString(), device: deviceInfo(),
+  };
+  S.pages = []; S.page = null; S.events = []; S.checkpoints = []; S.photos = []; S.audio = []; S.pointerTypes = new Set();
+  S.t0 = performance.now();
+  logEvent({ type: "session.start", mode: S.session.mode, title });
+  newPage();
+  $("sessionName").textContent = title;
+  $("modeTag").textContent = S.session.mode; $("modeTag").hidden = false;
+  $("clock").hidden = false; $("recDot").classList.add("on");
+  $("hint").textContent = "Recording. Draw, then add a checkpoint after each step worth checking."; $("hint").classList.add("rec");
+  clockTick();
+  updateButtons();
+}
+let clockTimer = null;
+function clockTick(){
+  clearInterval(clockTimer);
+  clockTimer = setInterval(() => {
+    if (!S.session) return;
+    const s = Math.floor((performance.now() - S.t0) / 1000);
+    $("clock").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  }, 500);
+}
+function endSession(){
+  if (!S.session) return;
+  if (S.mic) { stopMic().then(endSession); return; }  // keep the last clip
+  if (S.live) { currentStrokes().push(S.live); S.live = null; }
+  logEvent({ type: "session.end" });
+  const sess = S.session;
+  sess.endedAt = new Date().toISOString();
+  sess.durationMs = Math.round(performance.now() - S.t0);
+  sess.device.pointerTypesSeen = Array.from(S.pointerTypes);
+  const rec = {
+    schema: SCHEMA, exportedAt: null,
+    session: sess,
+    pages: S.pages.map(p => ({ id: p.id, index: p.index, width: p.width, height: p.height, dpr: p.dpr, strokes: p.strokes })),
+    events: S.events, checkpoints: S.checkpoints, photos: S.photos, audio: S.audio,
+    stats: { strokes: S.pages.reduce((n, p) => n + p.strokes.length, 0), points: S.pages.reduce((n, p) => n + p.strokes.reduce((m, s) => m + s.pts.length, 0), 0), checkpoints: S.checkpoints.length, photos: S.photos.length, pages: S.pages.length, audio: S.audio.length, audioMs: Math.round(S.audio.reduce((n, a) => n + a.tEnd - a.t, 0)) },
+  };
+  S.sessions.unshift(rec);
+  persist();
+  S.session = null; S.pages = []; S.page = null; S.events = []; S.checkpoints = []; S.photos = []; S.audio = []; S.undo = []; S.redo = [];
+  scratch.strokes = [];
+  clearInterval(clockTimer);
+  $("sessionName").textContent = "No session"; $("modeTag").hidden = true; $("clock").hidden = true; $("recDot").classList.remove("on");
+  $("hint").textContent = "Saved. Start another session or open Sessions to save files."; $("hint").classList.remove("rec");
+  redraw(); updateButtons(); renderSessions(); openDrawer(true);
+  toast("Session saved: " + rec.stats.strokes + " strokes, " + rec.stats.checkpoints + " checkpoints");
+}
+function updateButtons(){
+  const on = !!S.session;
+  $("btnCheckpoint").disabled = !on; $("btnPhoto").disabled = !on; $("btnMic").disabled = !on; $("btnNewPage").disabled = !on; $("btnEnd").disabled = !on;
+  $("btnNew").disabled = on;
+  $("btnUndo").disabled = !S.undo.length; $("btnRedo").disabled = !S.redo.length;
+  $("btnSessions").textContent = "Sessions (" + S.sessions.length + ")";
+}
+
+// ---------- checkpoint ----------
+function snapshot(){
+  // a plain-paper snapshot without the dot grid, at 1x
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, W, H);
+  g.lineCap = "round"; g.lineJoin = "round";
+  const strokes = currentStrokes();
+  for (const s of strokes) {
+    g.strokeStyle = s.color; g.fillStyle = s.color;
+    const pts = s.pts;
+    if (pts.length === 1) { g.beginPath(); g.arc(pts[0][1], pts[0][2], segWidth(s, pts[0][3]) / 2, 0, Math.PI * 2); g.fill(); continue; }
+    for (let i = 1; i < pts.length; i++) { g.lineWidth = segWidth(s, (pts[i-1][3] + pts[i][3]) / 2); g.beginPath(); g.moveTo(pts[i-1][1], pts[i-1][2]); g.lineTo(pts[i][1], pts[i][2]); g.stroke(); }
+  }
+  return c.toDataURL("image/png");
+}
+let cpPending = null;
+$("btnCheckpoint").addEventListener("click", () => {
+  if (!S.session) return;
+  cpPending = { id: uid("cp"), t: now(), page: S.page.id, strokeIds: S.page.strokes.map(s => s.id), snapshot: snapshot() };
+  $("cpSnap").src = cpPending.snapshot;
+  $("cpTruth").value = ""; $("cpExpect").value = ""; $("cpNote").value = ""; $("cpKind").value = "step";
+  $("dlgCheckpoint").showModal();
+});
+$("cpCancel").addEventListener("click", () => { cpPending = null; $("dlgCheckpoint").close(); });
+$("cpSave").addEventListener("click", () => {
+  if (!cpPending) return;
+  cpPending.kind = $("cpKind").value; cpPending.truth = $("cpTruth").value.trim(); cpPending.expect = $("cpExpect").value.trim(); cpPending.note = $("cpNote").value.trim();
+  S.checkpoints.push(cpPending);
+  logEvent({ type: "checkpoint", id: cpPending.id, kind: cpPending.kind, page: cpPending.page });
+  cpPending = null; $("dlgCheckpoint").close();
+  toast("Checkpoint " + S.checkpoints.length + " saved");
+});
+
+// ---------- photo ----------
+let phPending = null;
+$("btnPhoto").addEventListener("click", () => {
+  if (!S.session) return;
+  phPending = null; $("phFile").value = ""; $("phPreview").hidden = true; $("phSave").disabled = true;
+  $("phTruth").value = ""; $("phExpect").value = ""; $("phNote").value = "";
+  $("dlgPhoto").showModal();
+});
+$("phFile").addEventListener("change", () => {
+  const f = $("phFile").files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    const max = 1600, sc = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const dataUrl = c.toDataURL("image/jpeg", 0.85);
+    phPending = { id: uid("ph"), t: now(), page: S.page ? S.page.id : null, width: c.width, height: c.height, dataUrl };
+    $("phPreview").src = dataUrl; $("phPreview").hidden = false; $("phSave").disabled = false;
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(f);
+});
+$("phCancel").addEventListener("click", () => { phPending = null; $("dlgPhoto").close(); });
+$("phSave").addEventListener("click", () => {
+  if (!phPending) return;
+  phPending.truth = $("phTruth").value.trim(); phPending.expect = $("phExpect").value.trim(); phPending.note = $("phNote").value.trim();
+  S.photos.push(phPending);
+  logEvent({ type: "photo", id: phPending.id });
+  phPending = null; $("dlgPhoto").close();
+  toast("Photo " + S.photos.length + " saved");
+});
+
+// ---------- new session dialog ----------
+$("btnNew").addEventListener("click", () => { $("fTitle").value = ""; $("fProblem").value = ""; $("fIntent").value = ""; $("dlgNew").showModal(); setTimeout(() => $("fTitle").focus(), 50); });
+$("newCancel").addEventListener("click", () => $("dlgNew").close());
+$("newStart").addEventListener("click", () => { $("dlgNew").close(); startSession(); });
+$("btnNewPage").addEventListener("click", () => { if (S.session) newPage(); });
+$("btnEnd").addEventListener("click", () => { if (S.session && confirm("End this session and save it?")) endSession(); });
+
+// ---------- microphone: speech on the same clock as the ink (voice fixtures) ----------
+function micMime(){
+  for (const m of ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"]) if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+  return "";
+}
+async function startMic(){
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    toast(window.isSecureContext ? "This browser can’t record audio." : "The mic needs HTTPS: open the recorder through the get_recordings link.");
+    return;
+  }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }); }
+  catch (e) { toast("Mic not allowed (" + (e.name || e) + "). Safari: aA → Website Settings → Microphone."); return; }
+  if (!S.session || S.mic) { stream.getTracks().forEach(t => t.stop()); return; }
+  const mime = micMime();
+  const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 32000 });
+  const clip = { id: uid("au"), t: now(), tEnd: null, page: S.page ? S.page.id : null, mime: rec.mimeType || mime || "audio/webm" };
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const done = new Promise(res => { rec.onstop = res; });
+  S.mic = { rec, stream, clip, chunks, done };
+  rec.start(1000);
+  logEvent({ type: "mic", on: true, clip: clip.id });
+  $("btnMic").classList.add("on"); $("btnMic").textContent = "Mic on";
+}
+async function stopMic(){
+  const m = S.mic; if (!m) return;
+  S.mic = null;
+  m.clip.tEnd = now();
+  logEvent({ type: "mic", on: false, clip: m.clip.id });
+  $("btnMic").classList.remove("on"); $("btnMic").textContent = "Mic";
+  m.rec.stop(); await m.done;
+  m.stream.getTracks().forEach(t => t.stop());
+  const blob = new Blob(m.chunks, { type: m.clip.mime });
+  m.clip.bytes = blob.size;
+  m.clip.dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
+  S.audio.push(m.clip);
+  toast("Audio kept: " + Math.round((m.clip.tEnd - m.clip.t) / 1000) + " s");
+}
+$("btnMic").addEventListener("click", () => { if (S.mic) stopMic(); else if (S.session) startMic(); });
+
+// ---------- persistence ----------
+function persist(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(S.sessions)); }
+  catch (e) { toast("Couldn’t keep sessions in this browser (storage full). Save files now."); }
+}
+function restore(){
+  try { const raw = localStorage.getItem(LS_KEY); if (raw) S.sessions = JSON.parse(raw) || []; }
+  catch (e) { S.sessions = []; }
+}
+
+// ---------- sessions drawer ----------
+function openDrawer(open){ $("drawer").classList.toggle("open", open); }
+$("btnSessions").addEventListener("click", () => { renderSessions(); openDrawer(true); });
+$("drawerClose").addEventListener("click", () => openDrawer(false));
+function slug(s){ return (s || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "untitled"; }
+function fileName(rec){ return "rec-" + rec.session.mode + "-" + slug(rec.session.title) + "-" + rec.session.id.slice(-6) + ".json"; }
+function renderSessions(){
+  const list = $("sessList"); list.innerHTML = "";
+  if (!S.sessions.length) { list.innerHTML = '<div class="empty">No sessions yet. Record one, then save it as a file.</div>'; return; }
+  S.sessions.forEach((rec, i) => {
+    const d = document.createElement("div"); d.className = "sess";
+    const t = document.createElement("div"); t.className = "t"; t.textContent = rec.session.title;
+    const m = document.createElement("div"); m.className = "m";
+    m.textContent = rec.session.mode + " · " + Math.round(rec.session.durationMs / 1000) + " s · " + rec.stats.strokes + " strokes · " + rec.stats.checkpoints + " checkpoints · " + rec.stats.photos + " photos" + (rec.stats.audio ? " · " + rec.stats.audio + " audio" : "") + (rec.sentAt ? " · sent to Mac" : "");
+    const acts = document.createElement("div"); acts.className = "acts";
+    const bSave = document.createElement("button"); bSave.textContent = "Save file"; bSave.addEventListener("click", () => exportOne(rec));
+    const bSend = document.createElement("button"); bSend.textContent = "Send to Mac"; bSend.hidden = IN_VIEWER; bSend.addEventListener("click", () => sendToMac(rec, bSend));
+    const bAnno = document.createElement("button"); bAnno.textContent = "Annotate"; bAnno.addEventListener("click", () => openAnnotate(rec));
+    const bReplay = document.createElement("button"); bReplay.textContent = "Replay"; bReplay.addEventListener("click", () => { openDrawer(false); replay(rec); });
+    const bDel = document.createElement("button"); bDel.textContent = "Delete"; bDel.className = "danger";
+    bDel.addEventListener("click", () => { if (confirm("Delete “" + rec.session.title + "”?")) { S.sessions.splice(i, 1); persist(); renderSessions(); updateButtons(); } });
+    acts.append(bAnno, bSave, bSend, bReplay, bDel);
+    d.append(t, m, acts); list.appendChild(d);
+  });
+}
+$("btnClearAll").addEventListener("click", () => { if (S.sessions.length && confirm("Delete all " + S.sessions.length + " sessions?")) { S.sessions = []; persist(); renderSessions(); updateButtons(); } });
+
+// ---------- export ----------
+async function getDownloads(){
+  if (S.downloads !== undefined) return S.downloads;
+  try { S.downloads = (window.claude && window.claude.use) ? await window.claude.use("downloads") : null; } catch (_) { S.downloads = null; }
+  return S.downloads;
+}
+async function saveJson(filename, obj){
+  const data = JSON.stringify(obj);
+  const dl = await getDownloads();
+  if (dl) {
+    try { await dl.save({ filename, data }); toast("Saved " + filename); return; }
+    catch (e) { if (e && e.code === "declined") return; if (e && e.code !== "unavailable" && e.code !== "not_granted") toast("Couldn’t save: " + (e.code || "error")); }
+  }
+  if (!(window.claude && window.claude.use)) {
+    // Opened as a plain page (e.g. served from the Mac): a normal browser download works here.
+    try {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+      a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+      toast("Saved " + filename); return;
+    } catch (_) {}
+  }
+  $("exportText").value = data; $("dlgExport").showModal();
+}
+function exportOne(rec){ const out = Object.assign({}, rec, { exportedAt: new Date().toISOString() }); saveJson(fileName(rec), out); }
+$("btnExportAll").addEventListener("click", () => {
+  if (!S.sessions.length) return;
+  saveJson("recordings-" + new Date().toISOString().slice(0, 10) + ".json", { schema: SCHEMA + "/bundle", exportedAt: new Date().toISOString(), recordings: S.sessions });
+});
+$("exportCopy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("exportText").value); toast("Copied"); }
+  catch (_) { $("exportText").select(); toast("Select all and copy"); }
+});
+$("exportClose").addEventListener("click", () => $("dlgExport").close());
+
+// ---------- send to the Mac collector (self-hosted copy only) ----------
+function collectorUrl(){ try { return localStorage.getItem("inkrec.collector") || "/api/recordings"; } catch (_) { return "/api/recordings"; } }
+async function sendToMac(rec, btn){
+  const out = Object.assign({}, rec, { exportedAt: new Date().toISOString() });
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(collectorUrl(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: fileName(rec), recording: out }) });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const j = await res.json().catch(() => ({}));
+    rec.sentAt = new Date().toISOString(); persist(); renderSessions();
+    toast("Sent: " + (j.path || fileName(rec)));
+  } catch (e) {
+    toast("Couldn’t reach the collector at " + collectorUrl() + ". Is collector.py running?");
+  } finally { if (btn) btn.disabled = false; }
+}
+$("btnSendAll").addEventListener("click", async () => { for (const rec of S.sessions.slice()) await sendToMac(rec); });
+$("btnCollector").addEventListener("click", () => {
+  const v = prompt("Collector URL (leave empty for same origin /api/recordings)", collectorUrl());
+  if (v === null) return;
+  try { if (v.trim()) localStorage.setItem("inkrec.collector", v.trim()); else localStorage.removeItem("inkrec.collector"); } catch (_) {}
+  toast("Collector: " + collectorUrl());
+});
+$("btnSendAll").hidden = IN_VIEWER; $("btnCollector").hidden = IN_VIEWER;
+
+// ---------- annotate: draft ground truth with Claude, you confirm ----------
+let sampleFn; // undefined = not asked yet, null = unavailable
+let sampleImages = false;
+async function getSample(){
+  if (sampleFn !== undefined) return sampleFn;
+  try {
+    sampleFn = (window.claude && window.claude.use) ? await window.claude.use("sample") : null;
+    if (sampleFn) { const lim = await sampleFn.limits().catch(() => null); sampleImages = !!(lim && lim.images); }
+  } catch (_) { sampleFn = null; }
+  return sampleFn;
+}
+function dataUrlToBlob(dataUrl){
+  const comma = dataUrl.indexOf(",");
+  const head = dataUrl.slice(0, comma), b64 = dataUrl.slice(comma + 1);
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || "image/png";
+  const bin = atob(b64); const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+let annoRec = null;
+function annoItems(rec){
+  return [].concat((rec.checkpoints || []).map(c => ({ kind: "checkpoint", item: c })), (rec.photos || []).map(p => ({ kind: "photo", item: p })));
+}
+function buildPrompt(rec, kind, item, prevTruth){
+  const s = rec.session;
+  const what = s.mode === "diagram"
+    ? "Transcribe the hand-drawn diagram as a node/edge list in this form: 'nodes: A, B, C; edges: A->B (label), B->C'. Keep the writer's labels verbatim, including misspellings."
+    : (s.mode === "math" || s.mode === "accounting")
+      ? "Transcribe the handwriting line by line as LaTeX, one line per handwritten line, no environments. Transcribe exactly what is written, including mistakes; never correct the maths."
+      : "Transcribe the handwriting exactly as written, line by line, including spelling and grammar mistakes.";
+  return [
+    "You are helping build test data for a handwriting tutor. The image is " + (kind === "photo" ? "a photo of paper." : "a snapshot of a drawing canvas."),
+    "Session mode: " + s.mode + ".",
+    s.problem ? "Problem or task the writer was given: " + s.problem : "",
+    s.intent ? "The writer's own plan for this session: " + s.intent : "",
+    item.kind ? "The writer marked this moment as: " + item.kind + "." : "",
+    prevTruth ? "Transcript confirmed at the previous checkpoint (the image contains it plus possibly new lines): " + prevTruth : "",
+    what,
+    "Then propose briefly what a good tutor should do at this exact moment (mark, hint, ask, or stay silent), given the plan above. Never give a full solution.",
+    "List any symbols you are unsure about (for example 2 vs z, t vs +, 1 vs l).",
+    "Reply with only JSON: {\"truth\": string, \"expect\": string, \"uncertain\": string[]}",
+  ].filter(Boolean).join("\n");
+}
+async function draftItem(rec, kind, item, ui){
+  const fn = await getSample(); if (!fn || !sampleImages) return;
+  const items = annoItems(rec); const idx = items.findIndex(x => x.item === item);
+  const prev = idx > 0 ? (items[idx - 1].item.truth || "") : "";
+  ui.bDraft.disabled = true; ui.status.textContent = "Thinking…";
+  try {
+    const blob = dataUrlToBlob(kind === "photo" ? item.dataUrl : item.snapshot);
+    const out = await fn.json(buildPrompt(rec, kind, item, prev), { images: [blob], modelTier: $("annoStrong").checked ? "default" : "quick" });
+    if (out && typeof out === "object") {
+      if (typeof out.truth === "string") { ui.taTruth.value = out.truth; item.truth = out.truth; }
+      if (typeof out.expect === "string" && !(item.expect || "").trim()) { ui.taExpect.value = out.expect; item.expect = out.expect; }
+      const unc = Array.isArray(out.uncertain) ? out.uncertain.filter(x => typeof x === "string") : [];
+      ui.status.textContent = unc.length ? "Check: " + unc.join("; ") : "Drafted. Read it once and fix anything off.";
+      item.draftedBy = "claude";
+    } else ui.status.textContent = "No usable answer. Try again or type it.";
+  } catch (e) {
+    const code = e && e.code;
+    ui.status.textContent = code === "cancelled" ? "" : code === "not_granted" ? "Claude isn’t allowed for this page." : code === "rate_limited" ? "Busy. Wait a moment, then try again." : code === "invalid_json" ? "Answer wasn’t JSON. Try again." : "Couldn’t draft (" + (code || "error") + ").";
+    if (code === "not_granted") { sampleImages = false; $("annoDraftAll").hidden = true; }
+  } finally { ui.bDraft.disabled = false; persist(); }
+}
+function openAnnotate(rec){
+  annoRec = rec;
+  $("annoTitle").textContent = "Annotate “" + rec.session.title + "”";
+  const list = $("annoList"); list.innerHTML = "";
+  const items = annoItems(rec);
+  if (!items.length) list.innerHTML = '<div class="empty">No checkpoints or photos in this session. Ground truth lives on checkpoints; add at least a final one next time.</div>';
+  items.forEach(({ kind, item }, idx) => {
+    const d = document.createElement("div"); d.className = "anno-item";
+    const left = document.createElement("div");
+    const k = document.createElement("div"); k.className = "k";
+    k.textContent = (kind === "photo" ? "Photo" : "Checkpoint") + " " + (idx + 1) + (item.kind ? " · " + item.kind : "") + " · " + Math.round((item.t || 0) / 1000) + " s";
+    const img = document.createElement("img"); img.src = kind === "photo" ? item.dataUrl : item.snapshot; img.alt = (kind === "photo" ? "Photo " : "Snapshot ") + (idx + 1);
+    const bDraft = document.createElement("button"); bDraft.textContent = "Draft with Claude"; bDraft.className = "tool"; bDraft.style.marginTop = "8px"; bDraft.hidden = true;
+    const status = document.createElement("div"); status.className = "status";
+    left.append(k, img, bDraft, status);
+    const right = document.createElement("div");
+    const mk = (labelText, key, ph) => {
+      const l = document.createElement("label"); l.textContent = labelText;
+      const ta = document.createElement("textarea"); ta.value = item[key] || ""; ta.placeholder = ph || "";
+      ta.addEventListener("input", () => { item[key] = ta.value; });
+      right.append(l, ta); return ta;
+    };
+    const taTruth = mk("Ground truth (what you wrote)", "truth", "LaTeX, text, or nodes/edges");
+    const taExpect = mk("Expected tutor behaviour", "expect", "what it should mark, say, or ask");
+    mk("Note", "note", "");
+    d.append(left, right); list.appendChild(d);
+    const ui = { taTruth, taExpect, status, bDraft };
+    d._draft = () => draftItem(rec, kind, item, ui);
+    d._hasTruth = () => !!(item.truth || "").trim();
+    bDraft.addEventListener("click", () => d._draft());
+  });
+  $("annoDraftAll").hidden = true;
+  $("annoNote").textContent = "";
+  getSample().then(fn => {
+    const ok = !!fn && sampleImages && items.length > 0;
+    $("annoDraftAll").hidden = !ok;
+    list.querySelectorAll(".anno-item button.tool").forEach(b => { b.hidden = !ok; });
+    $("annoNote").textContent = ok ? "Drafts use your Claude account. Always check the 2-vs-z cases yourself." : (items.length ? "Drafting with Claude needs the claude.ai viewer; type the fields instead." : "");
+  });
+  $("dlgAnno").showModal();
+}
+$("annoDraftAll").addEventListener("click", async () => {
+  const nodes = Array.from($("annoList").querySelectorAll(".anno-item"));
+  $("annoDraftAll").disabled = true;
+  for (const n of nodes) { if (n._draft && !n._hasTruth()) await n._draft(); }
+  $("annoDraftAll").disabled = false;
+});
+$("annoClose").addEventListener("click", () => { persist(); $("dlgAnno").close(); renderSessions(); toast("Annotations saved"); });
+
+// ---------- replay ----------
+function replay(rec){
+  if (S.session) { toast("End the current session before replaying."); return; }
+  stopReplay();
+  const timeline = [];
+  for (const p of rec.pages) for (const s of p.strokes) timeline.push({ t: s.pts.length ? s.pts[0][0] : 0, page: p, stroke: s });
+  timeline.sort((a, b) => a.t - b.t);
+  if (!timeline.length) { toast("Nothing to replay"); return; }
+  S.replay = { speed: 4, rec, timeline, idx: 0, ptIdx: 0, raf: 0, start: performance.now(), base: timeline[0].t, pageId: null };
+  scratch.strokes = []; S.page = null; redraw();
+  $("replaybar").classList.add("show"); $("replayLabel").textContent = "Replaying “" + rec.session.title + "”";
+  $("btnReplaySpeed").textContent = "×" + S.replay.speed;
+  const step = () => {
+    const R = S.replay; if (!R) return;
+    const elapsed = (performance.now() - R.start) * R.speed + R.base;
+    while (R.idx < R.timeline.length) {
+      const item = R.timeline[R.idx];
+      if (item.page.id !== R.pageId) { R.pageId = item.page.id; scratch.strokes = []; redraw(); }
+      const pts = item.stroke.pts;
+      if (R.ptIdx === 0) { if (pts[0][0] > elapsed) break; }
+      let drewAll = true;
+      for (; R.ptIdx < pts.length; R.ptIdx++) {
+        if (pts[R.ptIdx][0] > elapsed) { drewAll = false; break; }
+        if (R.ptIdx === 0) drawDot(item.stroke, pts[0]); else drawSegment(item.stroke, pts[R.ptIdx - 1], pts[R.ptIdx]);
+      }
+      if (!drewAll) break;
+      scratch.strokes.push(item.stroke); R.idx++; R.ptIdx = 0;
+    }
+    if (R.idx >= R.timeline.length) { $("replayLabel").textContent = "Replay finished"; R.raf = 0; return; }
+    R.raf = requestAnimationFrame(step);
+  };
+  S.replay.raf = requestAnimationFrame(step);
+}
+function stopReplay(){
+  if (S.replay && S.replay.raf) cancelAnimationFrame(S.replay.raf);
+  S.replay = null; $("replaybar").classList.remove("show"); scratch.strokes = []; redraw();
+}
+$("btnReplayStop").addEventListener("click", stopReplay);
+$("btnReplaySpeed").addEventListener("click", () => {
+  if (!S.replay) return;
+  const R = S.replay; const elapsed = (performance.now() - R.start) * R.speed + R.base;
+  R.speed = R.speed === 1 ? 4 : R.speed === 4 ? 16 : 1;
+  R.start = performance.now() - (elapsed - R.base) / R.speed;
+  $("btnReplaySpeed").textContent = "×" + R.speed;
+});
+
+// ---------- misc ----------
+let toastTimer = null;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2200); }
+window.addEventListener("beforeunload", (e) => { if (S.session) { e.preventDefault(); e.returnValue = ""; } });
+
+restore();
+setBarHeight();
+resize();
+updateButtons();
+getDownloads();
+})();
+</script>
+</body>
+</html>
