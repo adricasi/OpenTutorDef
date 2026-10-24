@@ -261,7 +261,7 @@ class ScreenSession:
         elif isinstance(msg, InputEvent):
             self.inputs.append(msg)
             self.last_input_t = time.monotonic()
-            self.guide.on_input()
+            self.guide.on_input(msg)
         elif isinstance(msg, GuideGoal):
             self.guide.new_goal(msg.text)
         elif isinstance(msg, GuideControl):
@@ -369,6 +369,12 @@ class ScreenSession:
         text, t_end = " ".join(p for p in self.pending if p), self.pending_t
         self.pending, self.pending_t = [], None
         if not text:
+            return
+        g = self.guide
+        if g.plan is not None and not g.finished and len(text.split()) < 3 and not text.rstrip().endswith("?"):
+            # mid-walkthrough, a short fragment that is neither a command nor a question is noise ("you", "okay"):
+            # don't start a slow model call that would hold up the next step
+            log.info("screen %s: ignored %r while guiding", self.sid, text)
             return
         self.set_phantom("thinking")
         self._spawn(self.guide.on_utterance(text, t_end if t_end is not None else time.perf_counter()))

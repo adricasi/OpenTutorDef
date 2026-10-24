@@ -618,8 +618,23 @@ class Guide:
         elif self.step.done_when.kind == "vlm_yes_no":
             self._maybe_vlm("verify")
 
-    def on_input(self) -> None:
+    def on_input(self, ev: Any = None) -> None:
+        """A click on the highlighted control completes the step (any app, no model needed); the state predicates
+        still catch the user doing it another way. Done a moment later, so the screen's reaction is on its way."""
         self.pulse_t = time.monotonic()
+        step = self.step
+        if ev is None or ev.kind != "click" or ev.at is None or step is None or self.paused or not self.located:
+            return
+        box = step.target.bbox if step.target else None
+        m = self.cfg.click_margin_pt
+        if box is None or not (box.x - m <= ev.at.x <= box.x + box.w + m and box.y - m <= ev.at.y <= box.y + box.h + m):
+            return
+
+        def done() -> None:
+            if self.step is step and not self.paused:
+                self._step_done("click on target")
+
+        asyncio.get_running_loop().call_later(self.cfg.click_done_s, done)
 
     # ---------------------------------------------------------------- VLM fallback (rate-limited, changed frames only)
     def _maybe_vlm(self, purpose: str) -> bool:

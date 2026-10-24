@@ -843,3 +843,23 @@ def test_a_pause_mid_sentence_doesnt_split_the_request(make):
         assert tutor.count("plan") == 1
     finally:
         h.close()
+
+
+def test_a_click_on_the_highlighted_control_completes_the_step(make):
+    """Even when the plan only says 'wait for next', clicking the highlighted box moves on."""
+    steps = [{**s, "done_when": {"kind": "user_next", "args": {}}} for s in FX["plan"][:2]]
+    tutor = FakeTutor(plan=steps)
+    client, app, _ = make(tutor=tutor, click_done_s=0.05)
+    h = Helper(client, app)
+    try:
+        h.hello()
+        h.snap("start")
+        h.send({"type": "guide.goal", "text": FX["goal"]})
+        hl = h.next(is_overlay("highlight"))
+        b = hl["event"]["bbox"]
+        h.send({"type": "input.event", "kind": "click", "t_ms": 1, "at": {"x": b["x"] + 400, "y": b["y"] + 400}})
+        assert not any(is_status(step=2)(m) for m in h.collect(0.3))  # a click elsewhere does nothing
+        h.send({"type": "input.event", "kind": "click", "t_ms": 2, "at": {"x": b["x"] + b["w"] / 2, "y": b["y"] + 2}})
+        h.next(is_status(step=2))
+    finally:
+        h.close()
