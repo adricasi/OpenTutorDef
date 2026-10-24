@@ -18,6 +18,8 @@ floods or heatwaves close schools. They keep practising at home and go to school
 It's also useful to anyone who learns on paper and wants a patient second pair of eyes: maths, accounting, languages
 and sudoku. A separate screen tutor (in progress) walks people through desktop software step by step.
 
+![Open Tutor architecture: every model runs on one Apple-silicon Mac; the cloud provider is optional and off by default](media/architecture.svg)
+
 ## How to run it
 
 **You need:** an Apple-silicon Mac (tested on an M3 Pro with 36 GB of memory), with about 22 GB of memory free for
