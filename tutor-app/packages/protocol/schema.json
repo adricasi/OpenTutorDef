@@ -15,6 +15,9 @@
     "BBox": {
       "$ref": "#/$defs/BBox"
     },
+    "ChatText": {
+      "$ref": "#/$defs/ChatText"
+    },
     "CheckResult": {
       "$ref": "#/$defs/CheckResult"
     },
@@ -405,6 +408,31 @@
       "title": "BBox",
       "type": "object"
     },
+    "ChatText": {
+      "additionalProperties": false,
+      "description": "A question typed to the tutor: answered like a spoken one (a \"speak\" feedback), said aloud only if voice\nis already on.",
+      "properties": {
+        "type": {
+          "const": "chat.text",
+          "default": "chat.text",
+          "type": "string"
+        },
+        "page_id": {
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_id",
+        "text"
+      ],
+      "title": "ChatText",
+      "type": "object"
+    },
     "CheckResult": {
       "additionalProperties": false,
       "properties": {
@@ -473,6 +501,9 @@
         },
         {
           "$ref": "#/$defs/VoiceDictate"
+        },
+        {
+          "$ref": "#/$defs/ChatText"
         }
       ]
     },

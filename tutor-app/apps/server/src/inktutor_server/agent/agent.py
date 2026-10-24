@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from inktutor_protocol import (
     Anchor,
+    ChatText,
     FeedbackEvent,
     FeedbackMsg,
     GhostAction,
@@ -144,6 +145,18 @@ class PageState:
     photo: Any = None  # PIL image when this page is a photo of paper (anchors are boxes, not strokes)
 
 
+class _Silent:
+    """The reply when voice is off (a typed question): the answer goes to the panel only, nothing is spoken."""
+
+    cancelled = False
+
+    def add(self, text: str) -> None:
+        pass
+
+    async def finish(self) -> None:
+        pass
+
+
 class Agent:
     def __init__(self, session: Session, svc: Services) -> None:
         self.session = session
@@ -157,6 +170,7 @@ class Agent:
         self.reviewing: set[str] = set()  # pages whose tier-2 review is streaming right now
         self.paused: set[str] = set()  # pages whose review was stopped because the student started talking
         self.background: set[asyncio.Task[None]] = set()  # fire-and-forget work (converse prefill)
+        self.chat: asyncio.Task[None] | None = None  # the typed question being answered (a new one cancels it)
         self.last_page_id: str | None = None
         self.reads: dict[str, tuple[asyncio.Task[ReadingLine], threading.Event]] = {}  # content key → read
         self.history: list[str] = []  # "keep page history after wipe": wiped work, given to the tutor as prior work
@@ -176,6 +190,8 @@ class Agent:
             await q.put(msg)
 
     def close(self) -> None:
+        if self.chat:
+            self.chat.cancel()
         for p in self.pages.values():
             for t in (p.task, p.settle):
                 if t:
@@ -214,6 +230,8 @@ class Agent:
             await self.on_correction(msg)
         elif isinstance(msg, VoiceDictate):
             self.dictating = None if msg.cancel else (msg.page_id, msg.line_id)
+        elif isinstance(msg, ChatText):
+            self.on_chat(msg)
 
     # ---------------------------------------------------------------- ink
     async def on_ink(self, msg: InkUpdate) -> None:
@@ -1192,8 +1210,12 @@ class Agent:
                 page.settle = asyncio.create_task(self._after_settle(page))
         self.paused.clear()
 
-    def _voice_page(self, pen: Anchor | None) -> tuple[PageState | None, LineState | None]:
-        page = self.pages.get(self.last_page_id or "") or next(iter(self.pages.values()), None)
+    def _voice_page(self, pen: Anchor | None, page_id: str | None = None) -> tuple[PageState | None, LineState | None]:
+        page = (
+            self.pages.get(page_id or "")
+            or self.pages.get(self.last_page_id or "")
+            or next(iter(self.pages.values()), None)
+        )
         if page is None:
             return None, None
         ls = page.lines.get(pen.line_id or "") if pen and pen.line_id else None
@@ -1207,14 +1229,41 @@ class Agent:
         return page, ls
 
     async def _on_utterance(self, text: str, pen: Anchor | None, t_end: float) -> None:
-        from .._voice_commands import next_level
-        from ..voice.session import parse_command
-
         if self.take_dictation() is not None:
             return  # the student was dictating a correction: the transcript (already sent) fills the field on the web
         page, ls = self._voice_page(pen)
         if page is None or ls is None or self.voice is None:
             return
+        await self._converse(page, ls, text, t_end)
+
+    def on_chat(self, msg: ChatText) -> None:
+        """A typed question: the same answer as a spoken one (`_converse`), said aloud only if voice is already on.
+        Runs in the background (the socket keeps reading); a newer question cancels it, like barge-in does."""
+        text = " ".join(msg.text.split())
+        if not text:
+            return
+        page, ls = self._voice_page(None, msg.page_id)
+        if page is None or ls is None:
+            return  # nothing on the page yet to talk about (same rule as a spoken question)
+        if self.chat and not self.chat.done():
+            self.chat.cancel()
+        if self.voice is not None:
+            self.voice.barge_in()
+        self._pause_reviews()  # free the tier-2 model for the answer, as when the student starts talking
+        self.chat = asyncio.create_task(self._chat_turn(page, ls, text))
+
+    async def _chat_turn(self, page: PageState, ls: LineState, text: str) -> None:
+        try:
+            await self._converse(page, ls, text, time.perf_counter())
+        finally:
+            if self.chat is asyncio.current_task():
+                self._resume_reviews()
+
+    async def _converse(self, page: PageState, ls: LineState, text: str, t_end: float) -> None:
+        """Answer what the student said (spoken or typed) about `ls`: a "speak" feedback, spoken if voice is on."""
+        from .._voice_commands import next_level
+        from ..voice.session import parse_command
+
         cmd = parse_command(text)
         if cmd is not None:  # the hint ladder by voice: same hint events as the popover
             current = max((lv for (lid, key, lv) in page.hints if lid == ls.region.id and key == ls.key), default=0)
@@ -1225,14 +1274,14 @@ class Agent:
                 fast=True,
             )
             new = [page.feedback[f] for f in page.feedback if f not in n0 and page.feedback[f].type == "hint"]
-            if new and new[-1].text:
+            if new and new[-1].text and self.voice is not None:
                 await self.voice.say(new[-1].text, new[-1].id, t_end)
             return
         ctx = self._voice_ctx(page, ls, text)
         # sentences are spoken as they stream in (`speak_partial`); the panel gets the whole answer at the end
         ev_id, said = fid(), ""
         write: dict[str, Any] | None = None  # optional formula the tutor writes beside the line (after the speak)
-        reply = self.voice.reply(ev_id, t_end, heard=text)
+        reply = self.voice.reply(ev_id, t_end, heard=text) if self.voice is not None else _Silent()
         t_ask = time.perf_counter()
         stream = self._ask_tutor(page, "converse", ctx)
         try:

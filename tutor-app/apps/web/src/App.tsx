@@ -14,6 +14,7 @@ import { Onboarding } from "./ui/Onboarding";
 import { MODES, StartFlow } from "./ui/start/StartFlow";
 import { MoreMenu } from "./ui/MoreMenu";
 import { TalkButton, VoiceDock } from "./ui/VoiceDock";
+import { ChatPanel } from "./ui/chat/ChatPanel";
 import { penAnchor, VoiceControl } from "./voice/control";
 
 export default function App({ initial }: { initial?: Session | null }) {
@@ -38,7 +39,8 @@ function Workspace({ session }: { session: Session }) {
   const [eraser, setEraser] = useState(false);
   const [fingers, setFingers] = useState(false);
   const [debug, setDebug] = useState(false);
-  const [panel, setPanel] = useState(() => window.innerWidth >= 1400); // iPad landscape: the page gets the full width
+  // the chat column: open by default in landscape (iPad 1194 wide: ~360 px column), closed in portrait; "Panel" toggles it
+  const [panel, setPanel] = useState(() => window.innerWidth > window.innerHeight);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [popover, setPopover] = useState<{ f: FeedbackEvent; at: { x: number; y: number } } | null>(null);
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
@@ -94,10 +96,11 @@ function Workspace({ session }: { session: Session }) {
   const index: PageIndex = { strokes, reading };
   const fb = visibleFeedback(state.feedback[pageId] ?? []);
   const pins = fb.filter((f) => f.type === "mark" && f.glyph === "pin");
-  const explanations = fb.filter((f) => f.type === "explain" || f.type === "speak" || f.type === "summary");
   const tutorSaid = fb.filter((f) => f.type === "speak").at(-1)?.text ?? null;
   const graph = reading?.graph ?? null;
   const reference = fb.filter((f) => f.type === "hint" && f.hint_level === 4 && graph);
+  const referenceIds = new Set(reference.map((r) => r.id));
+  const subject = MODES.find(([v]) => v === session.mode)?.[1] ?? session.mode;
   const rootId = graph?.nodes?.length ? [...graph.nodes].sort((a, b) => a.bbox.y - b.bbox.y)[0]!.id : null;
 
   const send = useCallback((m: ClientMessage) => connRef.current?.send(m), []);
@@ -113,7 +116,7 @@ function Workspace({ session }: { session: Session }) {
     <div className={`app${panel ? " with-panel" : ""}`}>
       <header className="bar">
         <span className={`dot${state.connected ? " on" : ""}`} title={state.connected ? "connected" : "reconnecting"} />
-        <span className="mode">{MODES.find(([v]) => v === session.mode)?.[1] ?? session.mode}</span>
+        <span className="mode">{subject}</span>
         <div className="tools">
           <button className={!eraser ? "on" : ""} onClick={() => setEraser(false)}>Pen</button>
           <button className={eraser ? "on" : ""} onClick={() => setEraser(true)}>Eraser</button>
@@ -121,7 +124,7 @@ function Workspace({ session }: { session: Session }) {
           <button onClick={() => surfaceRef.current?.redo()} disabled={!ink?.canRedo}>Redo</button>
         </div>
         <div className="right">
-          <TalkButton view={voice} onClick={vc.toggle} />
+          {!panel && <TalkButton view={voice} onClick={vc.toggle} />}
           <MemoryIndicator status={state.runtime} onClick={() => setSettingsOpen(true)} />
           <span className={`badge ${state.badge?.provider ?? state.tier2?.provider ?? "local"}`} data-testid="badge">{badge}</span>
           <MoreMenu>
@@ -189,33 +192,29 @@ function Workspace({ session }: { session: Session }) {
         </div>
         {panel && (
           <aside className="panel">
-            {session.problem && <section><h3>Problem</h3><p>{session.problem}</p></section>}
-            {pins.length > 0 && (
-              <section><h3>Checklist</h3>
-                <ol>{pins.map((p) => <li key={p.id}><TutorText text={p.text} /></li>)}</ol>
-              </section>
-            )}
-            <section><h3>Tutor</h3>
-              {explanations.length === 0 && <p className="muted">Write; marks appear a few seconds after you lift the pen. Tap a mark for a hint.</p>}
-              {explanations.map((e) => <p key={e.id} className={e.type}><TutorText text={e.text} /></p>)}
-            </section>
-            {rootId && (
-              <section><h3>Reference structure</h3>
-                {reference.length === 0
-                  ? <button onClick={() => send({ type: "hint.request", page_id: pageId, line_id: rootId, level: 4, explicit: true })}>
-                      Show a reference structure
-                    </button>
-                  : reference.map((r) => <pre key={r.id} className="reference"><TutorText text={r.text} /></pre>)}
-                <p className="muted">Shown here, never on your page.</p>
-              </section>
-            )}
-            {(voice.phase !== "off" || voice.note || state.transcripts.length > 0) && (
-              <section><h3>Voice {voice.phase === "listening" ? "· listening" : voice.phase === "speaking" ? "· speaking" : ""}</h3>
+            <ChatPanel subject={subject} student={(state.session ?? session).student} pageId={pageId} feedback={fb}
+              transcripts={state.transcripts} send={send} skip={referenceIds}
+              talk={<TalkButton view={voice} onClick={vc.toggle} />}
+              sections={<>
+                {session.problem && <section><h3>Problem</h3><p>{session.problem}</p></section>}
+                {pins.length > 0 && (
+                  <section><h3>Checklist</h3>
+                    <ol>{pins.map((p) => <li key={p.id}><TutorText text={p.text} /></li>)}</ol>
+                  </section>
+                )}
+                {rootId && (
+                  <section><details><summary>Reference structure</summary>
+                    {reference.length === 0
+                      ? <button onClick={() => send({ type: "hint.request", page_id: pageId, line_id: rootId, level: 4, explicit: true })}>
+                          Show a reference structure
+                        </button>
+                      : reference.map((r) => <pre key={r.id} className="reference"><TutorText text={r.text} /></pre>)}
+                    <p className="muted">Shown here, never on your page.</p>
+                  </details></section>
+                )}
                 {voice.note && <p className="muted">{voice.note}</p>}
-                {state.transcripts.map((t, i) => <p key={i} className="said">“{t}”</p>)}
-              </section>
-            )}
-            {state.error && <section className="err">{state.error}</section>}
+                {state.error && <p className="ot-chat-err">{state.error}</p>}
+              </>} />
           </aside>
         )}
       </main>

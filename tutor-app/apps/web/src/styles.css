@@ -71,7 +71,7 @@ button.danger { background: var(--major); color: #fff; border-color: var(--major
 .badge.anthropic, .badge.openai { background: #fff1e5; color: #9a3412; border: 1px solid #fdba74; }
 
 .desk { display: grid; grid-template-columns: 1fr; min-height: 0; }
-.app.with-panel .desk { grid-template-columns: 1fr 300px; }
+.app.with-panel .desk { grid-template-columns: minmax(0, 1fr) 360px; }
 .page { position: relative; overflow: hidden; background: #fff; }
 canvas.ink { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; display: block; }
 .tutor-layer { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
@@ -92,7 +92,7 @@ canvas.ink { position: absolute; inset: 0; width: 100%; height: 100%; touch-acti
 .popover.tiny { width: auto; padding: 8px 44px 8px 10px; }
 .close { position: absolute; right: 6px; top: 6px; min-height: 28px; padding: 0 8px; border: 0; font-size: 20px; background: transparent; }
 
-.panel { border-left: 1px solid var(--line); background: var(--bar); padding: 12px 14px; overflow: auto; font-size: 15px; -webkit-user-select: text; user-select: text; }
+.panel { border-left: 1px solid var(--line); background: var(--bar); padding: 0; overflow: hidden; min-height: 0; font-size: 15px; -webkit-user-select: text; user-select: text; }
 .panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 6px; }
 .panel p { margin: 0 0 8px; line-height: 1.45; }
 .panel .speak::before { content: "🔊 "; }
@@ -111,6 +111,9 @@ canvas.ink { position: absolute; inset: 0; width: 100%; height: 100%; touch-acti
 .model { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 0; }
 
 @media (max-width: 900px) {
+  .app.with-panel .desk { grid-template-columns: minmax(0, 1fr) min(340px, 46vw); }
+}
+@media (max-width: 600px) {
   .app.with-panel .desk { grid-template-columns: 1fr; }
   .panel { display: none; }
 }

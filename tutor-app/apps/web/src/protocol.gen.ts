@@ -10,7 +10,8 @@ export type ClientMessage =
   | VoiceAudio
   | VoiceStop
   | LineCorrection
-  | VoiceDictate;
+  | VoiceDictate
+  | ChatText;
 export type ScreenClientMessage =
   | ScreenHello
   | ScreenFrame
@@ -38,6 +39,7 @@ export interface InkTutorProtocol {
   AXSnapshot?: AXSnapshot;
   Anchor?: Anchor;
   BBox?: BBox;
+  ChatText?: ChatText;
   CheckResult?: CheckResult;
   ClientMessage?: ClientMessage;
   DisplayInfo?: DisplayInfo;
@@ -143,6 +145,15 @@ export interface Anchor {
   stroke_ids?: string[] | null;
   bbox?: BBox | null;
   node_id?: string | null;
+}
+/**
+ * A question typed to the tutor: answered like a spoken one (a "speak" feedback), said aloud only if voice
+ * is already on.
+ */
+export interface ChatText {
+  type?: "chat.text";
+  page_id: string;
+  text: string;
 }
 export interface CheckResult {
   ok: boolean;

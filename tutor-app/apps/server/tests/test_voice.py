@@ -150,6 +150,7 @@ def test_converse_speaks_the_first_sentence_before_the_answer_is_complete():
             emit=emit,
         )
         stub.mode.name = "math"
+        stub._converse = lambda *a: Agent._converse(stub, *a)  # the answer path shared with typed questions
         await Agent._on_utterance(stub, "why is this wrong?", None, 0.0)
         return eng.spoken, spoken_when_partial_done, sent
 

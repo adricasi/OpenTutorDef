@@ -346,6 +346,15 @@ class VoiceDictate(_M):
     cancel: bool = False  # the field was closed before anything was said
 
 
+class ChatText(_M):
+    """A question typed to the tutor: answered like a spoken one (a "speak" feedback), said aloud only if voice
+    is already on."""
+
+    type: Literal["chat.text"] = "chat.text"
+    page_id: str
+    text: str = Field(min_length=1, max_length=1000)
+
+
 ClientMessage = Annotated[
     InkUpdate
     | HintRequest
@@ -356,7 +365,8 @@ ClientMessage = Annotated[
     | VoiceAudio
     | VoiceStop
     | LineCorrection
-    | VoiceDictate,
+    | VoiceDictate
+    | ChatText,
     Field(discriminator="type"),
 ]
 
