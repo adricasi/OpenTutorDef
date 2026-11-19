@@ -9,7 +9,7 @@
 [![model](https://img.shields.io/badge/model-Gemma%204%2026B--A4B%20(local)-E0892F)](#models)
 [![inference](https://img.shields.io/badge/inference-100%25%20on%20the%20Mac-2e7d32)](#architecture)
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [How it works](#how-it-works) · [Run it for a class](#run-it-for-a-class-operator-guide) · [Hackathon submission](#hackathon-submission) · [Docs](#documentation) · [Contributing](#contributing)
+[Video Demo](https://www.youtube.com/watch?v=syDQ9Jdgxr) · [Quick start](#quick-start) · [Architecture](#architecture) · [How it works](#how-it-works) · [Run it for a class](#run-it-for-a-class-operator-guide) · [Hackathon submission](#hackathon-submission) · [Docs](#documentation) · [Contributing](#contributing)
 
 </div>
 
